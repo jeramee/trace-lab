@@ -1,0 +1,27 @@
+from __future__ import annotations
+import argparse, json
+from .workflow import run_simulated_experiment
+from .validate import validate_run
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(prog="trace-lab")
+    sub = parser.add_subparsers(dest="command", required=True)
+
+    p = sub.add_parser("run-demo")
+    p.add_argument("--out", default=".trace_lab_demo")
+
+    p = sub.add_parser("validate")
+    p.add_argument("--run-dir", required=True)
+
+    args = parser.parse_args(argv)
+    if args.command == "run-demo":
+        print(run_simulated_experiment(args.out))
+        return 0
+    if args.command == "validate":
+        result = validate_run(args.run_dir)
+        print(json.dumps(result, indent=2, sort_keys=True))
+        return 0 if result["validation_status"] == "passed_operational_checks" else 1
+    return 2
+
+if __name__ == "__main__":
+    raise SystemExit(main())
