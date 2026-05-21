@@ -1,0 +1,8 @@
+{
+  "approval_id": "approval_demo_001",
+  "approval_scope": "simulation_only",
+  "decision": "approved_for_simulation_only",
+  "physical_execution_allowed": false,
+  "record_type": "approval_record",
+  "run_plan_id": "plan_demo_001"
+}

@@ -1,0 +1,14 @@
+{
+  "approval_required": true,
+  "dry_run_required": true,
+  "record_type": "run_plan",
+  "request_id": "request_demo_001",
+  "run_plan_id": "plan_demo_001",
+  "status": "proposed",
+  "steps": [
+    {
+      "action_type": "capture_simulated_flow",
+      "step_id": "step_001"
+    }
+  ]
+}

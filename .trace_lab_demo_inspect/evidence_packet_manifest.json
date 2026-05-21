@@ -1,0 +1,31 @@
+{
+  "artifacts": [
+    {
+      "hash": "8fd93d346c37ba5feddd2b2a09ec6b4d106dba54ea5f959f45a16708c632c6c3",
+      "path": "telemetry/simulated_flow_sensor_A.csv"
+    }
+  ],
+  "created_at": "2026-05-21T03:55:44+00:00",
+  "known_gaps": [
+    "Simulation only. No hardware integration."
+  ],
+  "not_proven_claims": [
+    "Scientific truth",
+    "physical safety validation",
+    "hardware readiness"
+  ],
+  "record_type": "evidence_packet_manifest",
+  "records": [
+    "adapter_action_record.json",
+    "adapter_capability_manifest.json",
+    "approval_record.json",
+    "dry_run_record.json",
+    "experiment_request.json",
+    "lab_run_record.json",
+    "review_record.json",
+    "run_plan.json",
+    "telemetry_manifest.json",
+    "validation_record.json"
+  ],
+  "run_id": "run_demo_001"
+}

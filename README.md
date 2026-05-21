@@ -10,6 +10,22 @@ Status: proposed product/research concept. Not an existing official NeuML produc
 
 ---
 
+## v0.1 simulated scaffold commands
+
+TraceLab v0.1 is simulation-only and has no runtime dependencies beyond Python. The current scaffold can create a demo evidence chain, validate operational record presence, and build a future NeuML handoff manifest without calling NeuML, txtai, PaperAI, paperetl, or hardware APIs.
+
+```bash
+python -m trace_lab.cli run-demo --out .trace_lab_demo
+python -m trace_lab.cli validate --run-dir .trace_lab_demo
+python -m trace_lab.cli build-neuml-handoff --run-dir .trace_lab_demo
+python -m unittest discover -s tests -v
+```
+
+Authority boundary: evidence is not proof; operational validation is not scientific validity; handoff is not promotion; simulation is not physical execution.
+
+`run-demo` refuses to write into a non-empty output directory. Remove the old demo folder or choose a new run directory before creating another simulated run. This prevents silent overwrite of run evidence.
+
+
 ## Product description
 
 TraceLab is an adapter-aware evidence orchestrator for instrumented research.

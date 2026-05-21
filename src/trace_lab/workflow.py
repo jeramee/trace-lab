@@ -4,9 +4,32 @@ import csv
 from .io import write_json, sha256_file
 from .records import now, default_authority_flags
 from .adapters import SimulatedAdapter
+from .neuml_handoff import write_neuml_handoff_manifest
+
+
+def _assert_output_directory_is_safe(out: Path) -> None:
+    """Refuse to create a demo run where existing artifacts could be overwritten."""
+    if not out.exists():
+        return
+
+    existing_files = sorted(
+        path.relative_to(out).as_posix()
+        for path in out.rglob("*")
+        if path.is_file()
+    )
+    if existing_files:
+        sample = ", ".join(existing_files[:5])
+        if len(existing_files) > 5:
+            sample += ", ..."
+        raise FileExistsError(
+            "TraceLab refuses to write a simulated run into a non-empty output "
+            f"directory because that could silently overwrite run evidence: {out} "
+            f"contains {sample}"
+        )
 
 def run_simulated_experiment(out: str | Path) -> Path:
     out = Path(out)
+    _assert_output_directory_is_safe(out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "telemetry").mkdir(exist_ok=True)
     adapter = SimulatedAdapter()
@@ -110,11 +133,5 @@ def run_simulated_experiment(out: str | Path) -> Path:
     }
     write_json(out / "evidence_packet_manifest.json", evidence_manifest)
 
-    handoff = {
-        "record_type": "neuml_handoff_manifest",
-        "handoff_status": "future_adapter_note",
-        "possible_consumers": ["evidence-ai-core", "run-lab", "txtai", "paperai"],
-        "authority_note": "Handoff does not promote claims.",
-    }
-    write_json(out / "neuml_handoff_manifest.json", handoff)
+    write_neuml_handoff_manifest(out)
     return out

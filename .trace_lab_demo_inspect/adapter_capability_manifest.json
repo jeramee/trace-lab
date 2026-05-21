@@ -1,0 +1,10 @@
+{
+  "adapter_id": "simulated_adapter_v0_1",
+  "authority_note": "Capability is not permission.",
+  "can_dry_run": true,
+  "can_execute_physical_actions": false,
+  "can_observe": true,
+  "mode": "simulation_only",
+  "record_type": "adapter_capability_manifest",
+  "requires_human_approval": true
+}

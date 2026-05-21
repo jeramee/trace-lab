@@ -1,0 +1,13 @@
+{
+  "action_id": "action_demo_001",
+  "action_type": "capture_simulated_flow",
+  "adapter_id": "simulated_adapter_v0_1",
+  "authority_note": "Simulated action is not physical execution or scientific validation.",
+  "execution_mode": "simulated",
+  "execution_status": "completed_simulated",
+  "parameters": {
+    "duration_seconds": 3
+  },
+  "physical_execution_completed": false,
+  "record_type": "adapter_action_record"
+}

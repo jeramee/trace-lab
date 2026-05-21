@@ -1,0 +1,10 @@
+{
+  "action_type": "capture_simulated_flow",
+  "adapter_id": "simulated_adapter_v0_1",
+  "dry_run_status": "passed",
+  "parameters": {
+    "duration_seconds": 3
+  },
+  "physical_execution_completed": false,
+  "record_type": "dry_run_record"
+}

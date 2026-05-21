@@ -1,0 +1,80 @@
+{
+  "authority_flags": {
+    "agent_approved": false,
+    "handoff_promotes_claims": false,
+    "physical_execution_completed": false,
+    "scientific_truth_validated": false,
+    "state_promoted": false
+  },
+  "authority_note": "NeuML handoff is a future-ingestion manifest only; it does not approve, validate truth, execute hardware, or promote claims.",
+  "created_at": "2026-05-21T03:55:44+00:00",
+  "evidence_packet_path": "evidence_packet_manifest.json",
+  "handoff_status": "prepared_for_future_ingestion_only",
+  "known_gaps": [
+    "Simulation only. No hardware integration.",
+    "No NeuML/txtai/PaperAI execution is performed by TraceLab v0.1."
+  ],
+  "not_proven_claims": [
+    "Scientific truth",
+    "physical safety validation",
+    "hardware readiness",
+    "Handoff consumer correctness",
+    "Physical execution readiness",
+    "Durable claim promotion"
+  ],
+  "possible_consumers": [
+    "txtai",
+    "paperai",
+    "paperetl",
+    "run-lab",
+    "evidence-ai-core"
+  ],
+  "recommended_ingestion_hints": {
+    "paperai": [
+      "Use evidence_packet_manifest.json, validation_record.json, and review_record.json as report context.",
+      "Preserve not_proven_claims in generated summaries."
+    ],
+    "paperetl": [
+      "Treat telemetry CSV files as candidate tabular artifacts, not validated scientific datasets."
+    ],
+    "txtai": [
+      "Index JSON records as text documents with path metadata.",
+      "Index telemetry manifests as metadata before indexing raw telemetry tables."
+    ]
+  },
+  "record_type": "neuml_handoff_manifest",
+  "records_included": [
+    "experiment_request.json",
+    "run_plan.json",
+    "adapter_capability_manifest.json",
+    "approval_record.json",
+    "dry_run_record.json",
+    "adapter_action_record.json",
+    "telemetry_manifest.json",
+    "validation_record.json",
+    "lab_run_record.json",
+    "evidence_packet_manifest.json",
+    "review_record.json"
+  ],
+  "report_candidates": [
+    "evidence_packet_manifest.json",
+    "review_record.json",
+    "validation_record.json"
+  ],
+  "telemetry_data_candidates": [
+    "telemetry/simulated_flow_sensor_A.csv"
+  ],
+  "text_index_candidates": [
+    "experiment_request.json",
+    "run_plan.json",
+    "approval_record.json",
+    "adapter_capability_manifest.json",
+    "dry_run_record.json",
+    "adapter_action_record.json",
+    "telemetry_manifest.json",
+    "validation_record.json",
+    "lab_run_record.json",
+    "evidence_packet_manifest.json",
+    "review_record.json"
+  ]
+}

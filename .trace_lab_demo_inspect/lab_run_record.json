@@ -1,0 +1,14 @@
+{
+  "action_record_refs": [
+    "adapter_action_record.json"
+  ],
+  "physical_execution_completed": false,
+  "record_type": "lab_run_record",
+  "request_id": "request_demo_001",
+  "run_id": "run_demo_001",
+  "run_plan_id": "plan_demo_001",
+  "status": "completed_simulated",
+  "telemetry_manifest_refs": [
+    "telemetry_manifest.json"
+  ]
+}

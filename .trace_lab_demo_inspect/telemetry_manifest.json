@@ -1,0 +1,13 @@
+{
+  "data_files": [
+    {
+      "hash": "8fd93d346c37ba5feddd2b2a09ec6b4d106dba54ea5f959f45a16708c632c6c3",
+      "path": "telemetry/simulated_flow_sensor_A.csv"
+    }
+  ],
+  "missing_channels": [],
+  "record_type": "telemetry_manifest",
+  "run_id": "run_demo_001",
+  "telemetry_manifest_id": "telemetry_demo_001",
+  "telemetry_status": "complete_for_simulation"
+}
