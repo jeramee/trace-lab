@@ -16,14 +16,73 @@ TraceLab v0.1 is simulation-only and has no runtime dependencies beyond Python. 
 
 ```bash
 python -m trace_lab.cli run-demo --out .trace_lab_demo
-python -m trace_lab.cli validate --run-dir .trace_lab_demo
+python -m trace_lab.cli validate --run-dir .trace_lab_demo --write-result
+python -m trace_lab.cli state-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli review-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli adapter-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli adapter-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli environment-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli policy-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli telemetry-profile --run-dir .trace_lab_demo --write
+python -m trace_lab.cli ingestion-preview --run-dir .trace_lab_demo --write
+python -m trace_lab.cli provenance-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli closeout-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli claim-summary --run-dir .trace_lab_demo --write
+python -m trace_lab.cli review-packet --run-dir .trace_lab_demo --write
+python -m trace_lab.cli report --run-dir .trace_lab_demo --write
+python -m trace_lab.cli verify-report --run-dir .trace_lab_demo --write-result
+python -m trace_lab.cli export-bundle --run-dir .trace_lab_demo --out .trace_lab_demo_export.zip
+python -m trace_lab.cli verify-bundle --bundle .trace_lab_demo_export.zip --write-result
 python -m trace_lab.cli build-neuml-handoff --run-dir .trace_lab_demo
+python -m trace_lab.cli validate --run-dir .trace_lab_demo
 python -m unittest discover -s tests -v
 ```
 
 Authority boundary: evidence is not proof; operational validation is not scientific validity; handoff is not promotion; simulation is not physical execution.
 
 `run-demo` refuses to write into a non-empty output directory. Remove the old demo folder or choose a new run directory before creating another simulated run. This prevents silent overwrite of run evidence.
+
+## v0.1 human-review gate
+
+TraceLab now writes `review_record.json` as a human-required review checkpoint. The record intentionally remains in `pending_human_trace_review` status. It does not complete human review, validate scientific truth, allow automatic promotion, or authorize hardware execution.
+
+Use the operator-facing review summary command to inspect that boundary:
+
+```bash
+python -m trace_lab.cli review-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli review-summary --run-dir .trace_lab_demo --write
+```
+
+`review_summary.json` is a view artifact only. It is not claim promotion.
+
+
+
+## v0.1 adapter boundary summary
+
+TraceLab now validates the simulated-adapter boundary as its own operational seam. The adapter capability manifest, dry-run record, and simulated action record must agree on the adapter identity, action type, parameters, and simulation-only execution mode. Forbidden hardware-control fields such as serial ports, device paths, LabVIEW VI paths, OPC UA endpoints, Modbus addresses, and driver modules are rejected in v0.1.
+
+Use the operator-facing adapter summary command to inspect that boundary:
+
+```bash
+python -m trace_lab.cli adapter-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli adapter-summary --run-dir .trace_lab_demo --write
+```
+
+`adapter_boundary_summary.json` is a view artifact only. It does not call hardware, approve execution, validate scientific truth, or promote claims.
+
+
+## v0.1 local export bundle
+
+TraceLab can package a validated simulated run into a local ZIP bundle:
+
+```bash
+python -m trace_lab.cli export-bundle --run-dir .trace_lab_demo --out .trace_lab_demo_export.zip
+python -m trace_lab.cli export-bundle --run-dir .trace_lab_demo --out .trace_lab_demo_export.zip --dry-run
+```
+
+The export command first checks operational validation. It refuses failed runs and refuses silent overwrite unless `--force` is explicitly provided. The ZIP contains `trace_lab_export_manifest.json`, the hashed run records, telemetry artifact, and optional operator-facing summaries that already exist in the run folder.
+
+The export bundle is packaging evidence only. It does not call NeuML, txtai, PaperAI, paperetl, hardware APIs, networks, or package installers. It does not validate scientific truth or promote claims.
 
 
 ## Product description
@@ -531,3 +590,176 @@ Adapter-aware evidence orchestration for instrumented research, connecting exper
 Planning/design draft.
 
 No code. No hardware. No repo mutation. No scientific truth claims.
+
+
+## Current v0.1 validation boundaries
+
+TraceLab validation is operational only. It checks required records, JSON readability, telemetry file presence/hash integrity, evidence artifact presence/hash integrity, record-link integrity, simulation-only approval scope, and authority flags that must remain false. These checks do not prove scientific truth, physical safety, hardware readiness, or claim promotion.
+
+
+## Run-state machine
+
+TraceLab v0.1 writes `run_state_chain.json` during `run-demo`. The chain is a simulation-only operational lifecycle:
+
+```text
+requested -> planned -> approved_for_simulation_only -> dry_run_checked -> simulated_action_recorded -> telemetry_recorded -> evidence_packet_built -> operationally_validated -> review_required -> handoff_prepared
+```
+
+Inspect it from the CLI:
+
+```bash
+python -m trace_lab.cli state-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli state-summary --run-dir .trace_lab_demo --write
+```
+
+The state chain does not approve hardware, validate scientific truth, or promote claims.
+
+## NeuML handoff preflight
+
+`build-neuml-handoff` is guarded by a mechanical preflight. TraceLab refuses to prepare `neuml_handoff_manifest.json` when required run records, evidence packet references, run-state chain, or telemetry candidates are missing.
+
+This guard prevents a future-ingestion artifact from making an incomplete run look handoff-ready. It is still only an operational completeness check:
+
+- it does not call NeuML, txtai, PaperAI, or paperetl;
+- it does not validate scientific truth;
+- it does not approve execution;
+- it does not promote claims;
+- it does not imply hardware readiness.
+
+The validator reports malformed handoff manifests under `handoff_errors`.
+
+## v8 validation-result persistence checkpoint
+
+TraceLab now supports an explicit `validate --write-result` CLI path that writes `validation_result.json` as a bounded operational evidence artifact. The writer refuses silent overwrite unless `--force-result` is used. The persisted result preserves the v0.1 authority boundary: operational validation is not scientific validity, does not execute hardware, does not retry, and does not promote claims.
+
+## Run manifest hash index
+
+TraceLab writes `run_manifest.json` during the demo run. This manifest hashes the core JSON records and telemetry artifact for mechanical drift detection. The validator reports run-manifest problems under `manifest_errors`. This remains operational evidence only: it does not validate scientific truth, approve hardware execution, or promote durable claims.
+
+
+
+## Runtime environment manifest
+
+The demo writes `runtime_environment_manifest.json` to capture local Python/runtime context for reproducibility. This is operational evidence only and does not validate scientific truth.
+
+```powershell
+python -m trace_lab.cli environment-summary --run-dir .trace_lab_demo
+python -m trace_lab.cli environment-summary --run-dir .trace_lab_demo --write
+```
+
+The summary preserves the v0.1 boundary: no package installation, no network calls, no hardware access, no execution approval, and no promotion.
+
+
+## Local export bundle verification
+
+TraceLab can verify a previously exported local evidence bundle without unpacking
+or executing it:
+
+```bash
+python -m trace_lab.cli verify-bundle --bundle .trace_lab_demo_export.zip
+```
+
+Bundle verification checks the embedded `trace_lab_export_manifest.json`, declared
+file hashes, declared file sizes, unsafe paths, unexpected files, and authority
+flags. It is still packaging-integrity validation only. It does not validate
+scientific truth, execute hardware, call networks, install packages, or promote
+claims.
+
+
+### Verify an export bundle and persist the verification result
+
+```powershell
+python -m trace_lab.cli verify-bundle --bundle .trace_lab_demo_export.zip --write-result
+```
+
+This writes a local sidecar result at `.trace_lab_demo_export.zip.validation.json` unless `--result-out` is provided. The result is packaging evidence only, not scientific validation or claim promotion.
+
+- `report` prints or writes a local Markdown evidence report (`trace_lab_report.md`) without validating scientific truth or promoting claims.
+
+## v17 report verification
+
+TraceLab can now verify the generated local Markdown report with `verify-report`.
+This check is a readability-boundary validation only: it confirms required boundary
+phrasing and false authority flags remain present. It does not validate scientific
+truth, execute hardware, approve actions, call networks, install packages, or
+promote claims. Use `--write-result` to persist `trace_lab_report.md.validation.json`.
+
+
+### Execution policy summary
+
+TraceLab v0.1 records a simulation-only execution policy in `execution_policy_manifest.json`. Use:
+
+```powershell
+python -m trace_lab.cli policy-summary --run-dir .trace_lab_demo --write
+```
+
+The policy makes the no-hidden-retry boundary explicit and does not approve, execute hardware, validate scientific truth, or promote claims.
+
+
+## v19 telemetry profile checkpoint
+
+TraceLab now writes `telemetry_profile_manifest.json` during the simulated demo run and supports `telemetry-profile` for an operator-facing data-shape summary. The profile records CSV shape, columns, row count, file hash agreement, and numeric-column ranges as mechanical evidence only. It does not infer sensor correctness, validate scientific truth, approve hardware readiness, or promote claims.
+
+
+## v20 ingestion preview / local index candidate manifest
+
+- Added `src/trace_lab/ingestion_preview.py`.
+- Demo runs now write `ingestion_preview_manifest.json`.
+- CLI includes `ingestion-preview`, `ingestion-preview --write`, and `ingestion-preview --write-manifest`.
+- Validation reports `ingestion_errors` for authority drift, unsafe candidate paths, candidate count drift, and malformed candidate sections.
+- Run manifest, NeuML handoff rebuilds, Markdown report, and export bundle paths now include ingestion-preview evidence where appropriate.
+- This is a local index preview only; it does not call NeuML/txtai/PaperAI, run models, perform ingestion, validate scientific truth, or promote claims.
+
+
+## v21 provenance manifest
+
+Adds `provenance_manifest.json`, `provenance-summary`, and validation for local evidence-origin metadata. This remains simulation-only and does not validate scientific truth, execute hardware, approve actions, or promote claims.
+
+
+## Run closeout
+
+TraceLab can write a local closeout stop-line for a simulated run:
+
+```bash
+python -m trace_lab.cli closeout-summary --run-dir .trace_lab_demo --write
+```
+
+This creates `run_closeout_summary.json`. The generated demo also records `run_closeout_manifest.json`.
+
+Closeout is not approval, scientific validation, hardware readiness, or claim promotion. It is an operator-facing indication that the local simulated trace has the expected evidence shape for review/export.
+
+### Claim ledger
+
+TraceLab can write a local claim-boundary ledger:
+
+```bash
+python -m trace_lab.cli claim-summary --run-dir .trace_lab_demo --write
+```
+
+This creates `claim_ledger_summary.json` and relies on `claim_ledger_manifest.json`. It distinguishes operational evidence from not-proven claims. It does not validate scientific truth, complete human review, approve physical execution, or promote claims.
+
+
+## Operator review packet
+
+TraceLab can write a local human-review packet manifest and summary:
+
+```bash
+python -m trace_lab.cli review-packet --run-dir .trace_lab_demo
+python -m trace_lab.cli review-packet --run-dir .trace_lab_demo --write
+```
+
+This creates `operator_review_packet_summary.json` and relies on `operator_review_packet_manifest.json`. The packet is a navigation/checklist artifact for a human reviewer. It does not complete human review, validate scientific truth, approve physical execution, or promote claims.
+
+
+## v25 Replay plan manifest
+
+Adds a local replay checklist manifest and summary (`replay_plan_manifest.json`, `replay_plan_summary.json`) plus `trace-lab replay-plan`. The replay plan is operator-checklist evidence only and does not execute replay, retry hidden actions, call hardware, or promote claims.
+
+### v26 audit index
+
+Adds `audit-index` for local artifact navigation and hash-oriented evidence-map summaries. The audit index is operator navigation only, not truth validation, replay, approval, hardware execution, or claim promotion.
+
+
+## v27 validation recipe
+
+Adds `validation-recipe`, `validation_recipe_manifest.json`, and `validation_recipe_summary.json` as a local command-checklist artifact. The recipe records validation commands without executing them and preserves the no hardware/no truth/no promotion boundary.

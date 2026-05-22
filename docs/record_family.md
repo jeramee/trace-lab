@@ -21,3 +21,8 @@ These records preserve traceability. They do not prove scientific truth or promo
 ## Overwrite boundary
 
 TraceLab v0.1 refuses to create a new simulated run inside a non-empty output directory. Existing run records and telemetry are evidence artifacts, so the demo workflow must not silently overwrite them. Users should choose a new run directory or explicitly remove the old demo directory before running another simulation.
+
+
+## Record-link integrity
+
+The v0.1 validator now checks that the request, run plan, approval, telemetry manifest, lab run record, evidence packet, and review record agree on their declared identifiers and references. This is still an operational check only. It prevents broken evidence chains from looking complete, but it does not prove scientific validity.

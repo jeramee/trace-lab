@@ -1,25 +1,19 @@
-# Code status
+# Code Status
 
-This is a rough-draft scaffold for `https://github.com/jeramee/trace-lab`.
+Current rough-draft TraceLab v0.1 scaffold includes simulated evidence generation, validation, state-chain checks, handoff preflight, run manifests, review gate, adapter boundary, runtime environment record, local export/verify bundle, Markdown report/verification, execution policy, telemetry profile, ingestion preview, provenance, closeout, claim-ledger boundary records, and operator-review packet records.
 
-This repository is Project 3 only.
+No hardware adapters, real device APIs, package installation, network calls, GUI automation, agent approval, scientific truth validation, or claim promotion are implemented.
 
-## Owns
 
-- simulated experiment requests
-- run plans
-- scoped approvals
-- simulated adapter capability manifests
-- dry-run records
-- adapter action records
-- telemetry manifests
-- lab run records
-- review records
+## v25 Replay plan manifest
 
-## Does not own
+Adds a local replay checklist manifest and summary (`replay_plan_manifest.json`, `replay_plan_summary.json`) plus `trace-lab replay-plan`. The replay plan is operator-checklist evidence only and does not execute replay, retry hidden actions, call hardware, or promote claims.
 
-- EvidenceAI Core packet implementation
-- RunLab notebook/research workbench
-- real hardware control
-- GUI automation
-- agent-owned approval, validation, retry, or promotion
+## v26 audit index
+
+Implemented local audit index manifest and summary generation with validation bucket `audit_errors`.
+
+
+## v27 validation recipe
+
+Adds `validation-recipe`, `validation_recipe_manifest.json`, and `validation_recipe_summary.json` as a local command-checklist artifact. The recipe records validation commands without executing them and preserves the no hardware/no truth/no promotion boundary.

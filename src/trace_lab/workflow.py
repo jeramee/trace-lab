@@ -5,6 +5,20 @@ from .io import write_json, sha256_file
 from .records import now, default_authority_flags
 from .adapters import SimulatedAdapter
 from .neuml_handoff import write_neuml_handoff_manifest
+from .run_manifest import write_run_manifest
+from .run_state import build_run_state_chain
+from .review import build_review_record
+from .runtime_environment import build_runtime_environment_manifest
+from .execution_policy import build_execution_policy_manifest
+from .telemetry_profile import build_telemetry_profile_manifest
+from .ingestion_preview import write_ingestion_preview_manifest
+from .provenance import write_provenance_manifest
+from .closeout import write_run_closeout_manifest
+from .claim_ledger import write_claim_ledger_manifest
+from .operator_review_packet import write_operator_review_packet_manifest
+from .replay_plan import write_replay_plan_manifest
+from .audit_index import write_audit_index_manifest
+from .validation_recipe import write_validation_recipe_manifest
 
 
 def _assert_output_directory_is_safe(out: Path) -> None:
@@ -98,14 +112,12 @@ def run_simulated_experiment(out: str | Path) -> Path:
         "status": "completed_simulated",
         "physical_execution_completed": False,
     }
-    review = {
-        "record_type": "review_record",
-        "review_id": "review_demo_001",
-        "run_id": lab_run["run_id"],
-        "decision": "review_required",
-        "claims_promoted": [],
-        "state_promoted": False,
-    }
+    review = build_review_record(lab_run["run_id"], created_at=created)
+    runtime_environment = build_runtime_environment_manifest(created_at=created)
+    execution_policy = build_execution_policy_manifest(created_at=created)
+    telemetry_profile = None
+
+    run_state_chain = build_run_state_chain()
 
     records = {
         "experiment_request.json": request,
@@ -118,9 +130,16 @@ def run_simulated_experiment(out: str | Path) -> Path:
         "validation_record.json": validation,
         "lab_run_record.json": lab_run,
         "review_record.json": review,
+        "run_state_chain.json": run_state_chain,
+        "runtime_environment_manifest.json": runtime_environment,
+        "execution_policy_manifest.json": execution_policy,
     }
     for name, data in records.items():
         write_json(out / name, data)
+
+    telemetry_profile = build_telemetry_profile_manifest(out, created_at=created)
+    write_json(out / "telemetry_profile_manifest.json", telemetry_profile)
+    records["telemetry_profile_manifest.json"] = telemetry_profile
 
     evidence_manifest = {
         "record_type": "evidence_packet_manifest",
@@ -133,5 +152,14 @@ def run_simulated_experiment(out: str | Path) -> Path:
     }
     write_json(out / "evidence_packet_manifest.json", evidence_manifest)
 
+    write_provenance_manifest(out)
+    write_ingestion_preview_manifest(out)
     write_neuml_handoff_manifest(out)
+    write_run_closeout_manifest(out)
+    write_claim_ledger_manifest(out)
+    write_operator_review_packet_manifest(out)
+    write_replay_plan_manifest(out)
+    write_audit_index_manifest(out)
+    write_validation_recipe_manifest(out)
+    write_run_manifest(out)
     return out
