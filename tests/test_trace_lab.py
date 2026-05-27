@@ -811,6 +811,20 @@ class TraceLabSimulationTests(unittest.TestCase):
         self.assertTrue(any("python_version" in item for item in result["environment_errors"]))
 
 
+
+    def test_export_bundle_manifest_includes_default_profile_metadata(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_export_default_profile"))
+        manifest = build_export_manifest(run_dir)
+
+        self.assertEqual(manifest["selected_profile"], "simulated_lab_bundle")
+        self.assertEqual(
+            manifest["profile_evidence_meaning"],
+            "Simulated lab/research evidence bundle provenance and verification status",
+        )
+        self.assertIn("no real hardware control", manifest["profile_stop_lines"])
+        self.assertIn("no scientific truth validation", manifest["profile_stop_lines"])
+        self.assertIn("no ncoder requirement", manifest["profile_stop_lines"])
+
     def test_export_bundle_manifest_preserves_authority_boundary(self):
         run_dir = run_simulated_experiment(self.tmp_path("demo_export_manifest"))
         manifest = build_export_manifest(run_dir)

@@ -5,6 +5,7 @@ from typing import Any
 import zipfile
 
 from .io import read_json, sha256_file, write_json
+from .profile_registry import SIMULATED_LAB_BUNDLE_PROFILE, require_profile
 from .records import now
 from .validate import validate_run
 
@@ -86,6 +87,7 @@ def build_export_manifest(run_dir: str | Path) -> dict[str, Any]:
     run_dir = Path(run_dir)
     validation_result = validate_run(run_dir)
     source_files = _source_files_from_run_manifest(run_dir)
+    selected_profile = require_profile(SIMULATED_LAB_BUNDLE_PROFILE)
 
     bundle_files: list[dict[str, Any]] = []
     for relative_path in source_files:
@@ -102,6 +104,9 @@ def build_export_manifest(run_dir: str | Path) -> dict[str, Any]:
         "record_type": "trace_lab_export_manifest",
         "created_at": now(),
         "export_scope": "operational_simulation_only",
+        "selected_profile": selected_profile["name"],
+        "profile_evidence_meaning": selected_profile["evidence_meaning"],
+        "profile_stop_lines": selected_profile["stop_lines"],
         "export_status": (
             "ready_for_local_zip_export"
             if validation_result.get("validation_status") == "passed_operational_checks"
