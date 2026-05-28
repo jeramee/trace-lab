@@ -115,6 +115,7 @@ def main(argv=None) -> int:
     p.add_argument("--run-dir", required=True)
     p.add_argument("--out", required=True)
     p.add_argument("--force", action="store_true")
+    p.add_argument("--profile", default="simulated_lab_bundle")
     p.add_argument("--dry-run", action="store_true")
 
     p = sub.add_parser("verify-bundle")
@@ -329,10 +330,10 @@ def main(argv=None) -> int:
     if args.command == "export-bundle":
         try:
             if args.dry_run:
-                manifest = build_export_manifest(args.run_dir)
+                manifest = build_export_manifest(args.run_dir, selected_profile_name=args.profile)
                 print(json.dumps(manifest, indent=2, sort_keys=True))
                 return 0 if manifest["export_status"] == "ready_for_local_zip_export" else 1
-            print(write_export_bundle(args.run_dir, args.out, force=args.force))
+            print(write_export_bundle(args.run_dir, args.out, force=args.force, selected_profile_name=args.profile))
             return 0
         except (FileExistsError, ValueError) as exc:
             print(str(exc), file=sys.stderr)

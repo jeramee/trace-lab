@@ -948,6 +948,97 @@ class TraceLabSimulationTests(unittest.TestCase):
         self.assertEqual(result["bundle_validation_status"], "passed_export_bundle_checks")
         self.assertEqual(result["export_bundle_errors"], [])
 
+
+
+    def test_ai_assisted_lab_notebook_profile_verifies_with_warnings_without_ncoder_execution(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_ai_assisted_profile"))
+        bundle_path = run_dir.parent / "trace_lab_export_ai_assisted.zip"
+
+        write_export_bundle(
+            run_dir,
+            bundle_path,
+            selected_profile_name="ai_assisted_lab_notebook",
+        )
+
+        with zipfile.ZipFile(bundle_path) as bundle:
+            manifest = json.loads(bundle.read(EXPORT_MANIFEST_NAME).decode("utf-8"))
+
+        self.assertEqual(manifest["selected_profile"], "ai_assisted_lab_notebook")
+        self.assertEqual(manifest["profile_status"], "declarative_only")
+        self.assertEqual(manifest["tool_execution_status"], "not_performed")
+        self.assertEqual(manifest["scientific_validation_status"], "not_claimed")
+        self.assertIn(
+            "ai_assisted_lab_notebook is declarative-only in v0.2; no ncoder execution was verified.",
+            manifest["profile_warning"],
+        )
+        self.assertEqual(manifest["profile_specific"]["required_tool"], "ncoder")
+        self.assertEqual(manifest["profile_specific"]["required_tool_execution"], "not_performed")
+
+        result = validate_export_bundle(bundle_path)
+
+        self.assertEqual(result["bundle_validation_status"], "passed_export_bundle_checks_with_warnings")
+        self.assertEqual(result["verification_status"], "passed_with_warnings")
+        self.assertEqual(result["export_bundle_errors"], [])
+        warnings = "\\n".join(result["export_bundle_warnings"])
+        self.assertIn("declarative-only in v0.2", warnings)
+        self.assertIn("no ncoder execution was verified", warnings)
+
+    def test_cli_export_bundle_accepts_ai_assisted_profile_without_ncoder_execution(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_cli_ai_assisted_profile"))
+        bundle_path = run_dir.parent / "trace_lab_export_ai_assisted.zip"
+        stdout = io.StringIO()
+
+        with redirect_stdout(stdout):
+            code = cli_main(
+                [
+                    "export-bundle",
+                    "--run-dir",
+                    str(run_dir),
+                    "--out",
+                    str(bundle_path),
+                    "--profile",
+                    "ai_assisted_lab_notebook",
+                ]
+            )
+
+        self.assertEqual(code, 0)
+        self.assertTrue(bundle_path.exists())
+        with zipfile.ZipFile(bundle_path) as bundle:
+            manifest = json.loads(bundle.read(EXPORT_MANIFEST_NAME).decode("utf-8"))
+
+        self.assertEqual(manifest["selected_profile"], "ai_assisted_lab_notebook")
+        self.assertEqual(manifest["profile_status"], "declarative_only")
+        self.assertEqual(manifest["tool_execution_status"], "not_performed")
+        self.assertEqual(manifest["scientific_validation_status"], "not_claimed")
+
+    def test_verify_export_bundle_fails_unknown_selected_profile_without_tool_checks(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_verify_unknown_profile"))
+        bundle_path = run_dir.parent / "trace_lab_export.zip"
+        write_export_bundle(run_dir, bundle_path)
+
+        broken_path = run_dir.parent / "trace_lab_export_unknown_profile.zip"
+        with zipfile.ZipFile(bundle_path) as source, zipfile.ZipFile(
+            broken_path,
+            "w",
+            compression=zipfile.ZIP_DEFLATED,
+        ) as target:
+            for info in source.infolist():
+                data = source.read(info.filename)
+                if info.filename == EXPORT_MANIFEST_NAME:
+                    manifest = json.loads(data.decode("utf-8"))
+                    manifest["selected_profile"] = "real_hardware_lab_controller"
+                    data = json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8")
+                target.writestr(info, data)
+
+        result = validate_export_bundle(broken_path)
+
+        self.assertEqual(result["bundle_validation_status"], "failed_export_bundle_checks")
+        errors = "\n".join(result["export_bundle_errors"])
+        self.assertIn("selected_profile", errors)
+        self.assertIn("real_hardware_lab_controller", errors)
+        self.assertNotIn("ncoder", errors)
+        self.assertNotIn("required_tools", errors)
+
     def test_verify_export_bundle_catches_missing_manifest(self):
         bundle_path = self.tmp_path("broken_missing_manifest.zip")
         with zipfile.ZipFile(bundle_path, "w") as bundle:
@@ -1125,6 +1216,40 @@ class TraceLabSimulationTests(unittest.TestCase):
         self.assertFalse(result["scientific_truth_validated"])
         self.assertFalse(result["claims_promoted"])
 
+
+
+    def test_markdown_report_copies_profile_warning_summary_without_generating_profile_logic(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_report_profile_warning"))
+        export_manifest = build_export_manifest(
+            run_dir,
+            selected_profile_name="ai_assisted_lab_notebook",
+        )
+        self.write_json(run_dir / "trace_lab_export_manifest.json", export_manifest)
+
+        report = build_markdown_report(run_dir)
+
+        self.assertIn("## Profile warnings", report)
+        self.assertIn(
+            "ai_assisted_lab_notebook is declarative-only in v0.2; no ncoder execution was verified.",
+            report,
+        )
+        self.assertIn("Reports do not generate or reinterpret profile warnings.", report)
+
+    def test_operator_review_packet_summary_copies_profile_warning_summary_without_verifying_tools(self):
+        run_dir = run_simulated_experiment(self.tmp_path("demo_review_packet_profile_warning"))
+        export_manifest = build_export_manifest(
+            run_dir,
+            selected_profile_name="ai_assisted_lab_notebook",
+        )
+        self.write_json(run_dir / "trace_lab_export_manifest.json", export_manifest)
+
+        summary = build_operator_review_packet_summary(run_dir)
+
+        self.assertEqual(summary["profile_warning_source"], "trace_lab_export_manifest.json")
+        warnings = "\n".join(summary["profile_warning_summary"])
+        self.assertIn("declarative-only in v0.2", warnings)
+        self.assertIn("no ncoder execution was verified", warnings)
+        self.assertNotIn("required_tools", warnings)
 
     def test_markdown_report_preserves_authority_boundary(self):
         run_dir = run_simulated_experiment(self.tmp_path("demo_report_boundary"))

@@ -68,6 +68,23 @@ def _safe_relative_path(raw_path: object) -> tuple[Path | None, str | None]:
     return candidate, None
 
 
+def _copied_profile_warnings(run_dir: Path) -> list[str]:
+    """Return profile warnings copied from local export metadata, if present."""
+
+    export_manifest_path = run_dir / "trace_lab_export_manifest.json"
+    if not export_manifest_path.exists():
+        return []
+    try:
+        export_manifest = read_json(export_manifest_path)
+    except Exception:  # noqa: BLE001 - malformed optional evidence is handled elsewhere
+        return []
+
+    warnings = export_manifest.get("profile_warning", [])
+    if not isinstance(warnings, list):
+        return []
+    return [warning for warning in warnings if isinstance(warning, str)]
+
+
 def _packet_item(run_dir: Path, relative_path: str, *, required: bool) -> dict[str, Any]:
     path = run_dir / relative_path
     item: dict[str, Any] = {
@@ -262,6 +279,7 @@ def build_operator_review_packet_summary(run_dir: str | Path) -> dict[str, Any]:
     packet_items = manifest.get("packet_items", []) if isinstance(manifest, dict) else []
     required_count = sum(1 for item in packet_items if isinstance(item, dict) and item.get("required"))
     optional_count = sum(1 for item in packet_items if isinstance(item, dict) and not item.get("required"))
+    profile_warnings = _copied_profile_warnings(run_dir)
 
     return {
         "record_type": "operator_review_packet_summary",
@@ -278,6 +296,8 @@ def build_operator_review_packet_summary(run_dir: str | Path) -> dict[str, Any]:
         "automatic_promotion_allowed": False,
         "required_item_count": required_count,
         "optional_item_count": optional_count,
+        "profile_warning_summary": profile_warnings,
+        "profile_warning_source": "trace_lab_export_manifest.json" if profile_warnings else None,
         "review_packet_errors": validation["review_packet_errors"],
         "unsafe": validation["unsafe"],
         "boundary_notes": BOUNDARY_NOTES,

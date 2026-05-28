@@ -5,7 +5,7 @@ from typing import Any
 import zipfile
 
 from .io import read_json, sha256_file, write_json
-from .profile_registry import SIMULATED_LAB_BUNDLE_PROFILE, require_profile
+from .profile_registry import AI_ASSISTED_LAB_NOTEBOOK_PROFILE, SIMULATED_LAB_BUNDLE_PROFILE, is_known_profile, require_profile
 from .records import now
 from .validate import validate_run
 
@@ -76,7 +76,11 @@ def _source_files_from_run_manifest(run_dir: Path) -> list[str]:
     return sorted(paths)
 
 
-def build_export_manifest(run_dir: str | Path) -> dict[str, Any]:
+def build_export_manifest(
+    run_dir: str | Path,
+    *,
+    selected_profile_name: str = SIMULATED_LAB_BUNDLE_PROFILE,
+) -> dict[str, Any]:
     """Build a local ZIP export manifest for a validated TraceLab run.
 
     The export manifest is a packaging record only. It does not install
@@ -87,7 +91,7 @@ def build_export_manifest(run_dir: str | Path) -> dict[str, Any]:
     run_dir = Path(run_dir)
     validation_result = validate_run(run_dir)
     source_files = _source_files_from_run_manifest(run_dir)
-    selected_profile = require_profile(SIMULATED_LAB_BUNDLE_PROFILE)
+    selected_profile = require_profile(selected_profile_name)
 
     bundle_files: list[dict[str, Any]] = []
     for relative_path in source_files:
@@ -107,6 +111,26 @@ def build_export_manifest(run_dir: str | Path) -> dict[str, Any]:
         "selected_profile": selected_profile["name"],
         "profile_evidence_meaning": selected_profile["evidence_meaning"],
         "profile_stop_lines": selected_profile["stop_lines"],
+        "profile_status": "declarative_only"
+        if selected_profile["name"] == AI_ASSISTED_LAB_NOTEBOOK_PROFILE
+        else "active",
+        "tool_execution_status": "not_performed",
+        "scientific_validation_status": "not_claimed",
+        "profile_warning": (
+            [
+                "ai_assisted_lab_notebook is declarative-only in v0.2; no ncoder execution was verified."
+            ]
+            if selected_profile["name"] == AI_ASSISTED_LAB_NOTEBOOK_PROFILE
+            else []
+        ),
+        "profile_specific": (
+            {
+                "required_tool": "ncoder",
+                "required_tool_execution": "not_performed",
+            }
+            if selected_profile["name"] == AI_ASSISTED_LAB_NOTEBOOK_PROFILE
+            else {}
+        ),
         "export_status": (
             "ready_for_local_zip_export"
             if validation_result.get("validation_status") == "passed_operational_checks"
@@ -148,6 +172,7 @@ def write_export_bundle(
     out_zip: str | Path,
     *,
     force: bool = False,
+    selected_profile_name: str = SIMULATED_LAB_BUNDLE_PROFILE,
 ) -> Path:
     """Write a local evidence bundle ZIP for a validated TraceLab run."""
 
@@ -167,7 +192,7 @@ def write_export_bundle(
             f"validation_status={validation_result.get('validation_status')}"
         )
 
-    manifest = build_export_manifest(run_dir)
+    manifest = build_export_manifest(run_dir, selected_profile_name=selected_profile_name)
     source_files = [item["path"] for item in manifest["bundle_files"]]
 
     out_zip.parent.mkdir(parents=True, exist_ok=True)
@@ -183,7 +208,7 @@ def _manifest_file_names(bundle: zipfile.ZipFile) -> set[str]:
     return {name for name in bundle.namelist() if not name.endswith("/")}
 
 
-def validate_export_bundle(bundle_zip: str | Path) -> dict[str, Any]:
+def _validate_export_bundle_base(bundle_zip: str | Path) -> dict[str, Any]:
     """Validate a local TraceLab export ZIP without unpacking or executing it.
 
     This is a packaging-integrity check only. It does not validate scientific
@@ -237,6 +262,12 @@ def validate_export_bundle(bundle_zip: str | Path) -> dict[str, Any]:
                     errors.append("Export manifest export_status must be ready_for_local_zip_export.")
                 if manifest.get("source_validation_status") != "passed_operational_checks":
                     errors.append("Export manifest source_validation_status must be passed_operational_checks.")
+
+                selected_profile = manifest.get("selected_profile")
+                if not isinstance(selected_profile, str) or not selected_profile:
+                    errors.append("Export manifest selected_profile must name a registered TraceLab profile.")
+                elif not is_known_profile(selected_profile):
+                    errors.append(f"Export manifest selected_profile is not registered: {selected_profile}")
 
                 flags = manifest.get("authority_flags", {})
                 for flag_name in (
@@ -328,6 +359,63 @@ def default_export_bundle_validation_result_path(bundle_zip: str | Path) -> Path
     bundle_zip = Path(bundle_zip)
     return bundle_zip.with_name(bundle_zip.name + EXPORT_BUNDLE_VALIDATION_RESULT_SUFFIX)
 
+
+
+def validate_export_bundle(bundle_zip: str | Path) -> dict[str, Any]:
+    # Validate a TraceLab export bundle and surface v0.2 profile disclosures.
+
+    result = _validate_export_bundle_base(bundle_zip)
+    result.setdefault("export_bundle_warnings", [])
+    if result.get("bundle_validation_status") == "failed_export_bundle_checks":
+        result.setdefault("verification_status", "failed")
+        return result
+
+    result.setdefault("verification_status", "passed")
+
+    try:
+        with zipfile.ZipFile(bundle_zip) as bundle:
+            manifest = __import__("json").loads(bundle.read(EXPORT_MANIFEST_NAME).decode("utf-8"))
+    except Exception:
+        return result
+
+    if manifest.get("selected_profile") != AI_ASSISTED_LAB_NOTEBOOK_PROFILE:
+        return result
+
+    profile_warning = (
+        "ai_assisted_lab_notebook is declarative-only in v0.2; "
+        "no ncoder execution was verified."
+    )
+    disclosure_errors: list[str] = []
+
+    manifest_warnings = manifest.get("profile_warning", [])
+    if profile_warning not in manifest_warnings:
+        disclosure_errors.append(
+            "Export manifest profile_warning must disclose declarative-only ai_assisted_lab_notebook behavior."
+        )
+    if manifest.get("profile_status") != "declarative_only":
+        disclosure_errors.append(
+            "Export manifest profile_status must be declarative_only for ai_assisted_lab_notebook."
+        )
+    if manifest.get("tool_execution_status") != "not_performed":
+        disclosure_errors.append(
+            "Export manifest tool_execution_status must be not_performed for ai_assisted_lab_notebook."
+        )
+    if manifest.get("scientific_validation_status") != "not_claimed":
+        disclosure_errors.append(
+            "Export manifest scientific_validation_status must be not_claimed for ai_assisted_lab_notebook."
+        )
+
+    if disclosure_errors:
+        result["export_bundle_errors"].extend(disclosure_errors)
+        result["bundle_validation_status"] = "failed_export_bundle_checks"
+        result["verification_status"] = "failed"
+        return result
+
+    if profile_warning not in result["export_bundle_warnings"]:
+        result["export_bundle_warnings"].append(profile_warning)
+    result["bundle_validation_status"] = "passed_export_bundle_checks_with_warnings"
+    result["verification_status"] = "passed_with_warnings"
+    return result
 
 def write_export_bundle_validation_result(
     bundle_zip: str | Path,

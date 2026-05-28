@@ -44,6 +44,19 @@ def _read_optional_json(run_dir: Path, name: str) -> dict[str, Any]:
         return {}
 
 
+def _copied_profile_warnings(record: dict[str, Any]) -> list[str]:
+    """Return profile warnings copied from existing evidence records.
+
+    Reports display these warnings only. They do not generate or reinterpret
+    profile warnings, inspect tools, or validate scientific truth.
+    """
+
+    warnings = record.get("profile_warning", [])
+    if not isinstance(warnings, list):
+        return []
+    return [warning for warning in warnings if isinstance(warning, str)]
+
+
 def build_report_model(run_dir: str | Path) -> dict[str, Any]:
     """Build a local operator-facing report model for a TraceLab run.
 
@@ -112,6 +125,10 @@ def build_report_model(run_dir: str | Path) -> dict[str, Any]:
         "handoff_status": handoff.get("handoff_status"),
         "handoff_possible_consumers": handoff.get("possible_consumers", []),
         "export_status": export_manifest.get("export_status"),
+        "profile_warning_summary": _copied_profile_warnings(export_manifest),
+        "profile_warning_source": "trace_lab_export_manifest.json"
+        if _copied_profile_warnings(export_manifest)
+        else None,
         "authority_flags": {
             "agent_approved": False,
             "physical_execution_completed": False,
@@ -134,6 +151,7 @@ def build_markdown_report(run_dir: str | Path) -> str:
     states = model["state_summary"].get("states", [])
     error_buckets = model["validation_error_buckets"]
     non_empty_errors = {key: value for key, value in error_buckets.items() if value}
+    profile_warnings = model.get("profile_warning_summary", [])
 
     lines = [
         "# TraceLab Local Evidence Report",
@@ -161,6 +179,14 @@ def build_markdown_report(run_dir: str | Path) -> str:
         "",
     ])
     lines.extend(f"{index}. `{state}`" for index, state in enumerate(states, start=1))
+    if profile_warnings:
+        lines.extend([
+            "",
+            "## Profile warnings",
+            "",
+            "These warnings are copied from export bundle metadata. Reports do not generate or reinterpret profile warnings.",
+        ])
+        lines.extend(f"- {warning}" for warning in profile_warnings)
     lines.extend([
         "",
         "## Review gate",
